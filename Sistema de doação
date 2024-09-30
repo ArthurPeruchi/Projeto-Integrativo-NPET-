@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+  char doacao[20], tipo_pag[30], tipo_fis[30], nome[30], tipo_cart[20];
+  float valor, parcelado;
+  int parcelas, dia, mes, ano;
+
+  printf("\nPara qual instituição você deseja doar? ");
+  scanf("%29s", nome);
+
+  printf(
+      "\nQual tipo de doação você gostaria de fazer? (Produto, Monetária): ");
+  scanf("%19s", doacao);
+
+  if (strcmp(doacao, "Produto") == 0 || strcmp(doacao, "produto") == 0) {
+    printf("\nQual tipo de produto você gostaria de doar? (Alimentos, Medicamentos, Brinquedos ou Cobertores): ");
+    scanf("%19s", tipo_fis);
+
+    if (strcmp(tipo_fis, "Alimentos") == 0 ||
+        strcmp(tipo_fis, "alimentos") == 0 ||
+        strcmp(tipo_fis, "Medicamentos") == 0 ||
+        strcmp(tipo_fis, "medicamentos") == 0 ||
+        strcmp(tipo_fis, "Brinquedos") == 0 ||
+        strcmp(tipo_fis, "brinquedos") == 0 ||
+        strcmp(tipo_fis, "Cobertores") == 0 ||
+        strcmp(tipo_fis, "cobertores") == 0) {
+      printf("\nQuando você deseja agendar a visita? Por favor, informe o dia, mês e ano, separados por espaço (exemplo: 30 9 2024): ");
+      scanf("%d %d %d", &dia, &mes, &ano);
+      if  (dia > 31 || dia < 1 || 
+          (dia == 31 && mes == 2) || (dia == 31 && mes == 4) ||
+          (dia == 31 && mes == 6) || (dia == 31 && mes == 9) ||
+          (dia == 31 && mes == 11) || (dia == 29 && mes == 2 && ano % 4 != 0) ||
+          (dia == 30 && mes == 2)) {
+        printf("\nData inválida. Por favor, informe uma data válida.");
+      } else if (mes > 12 || mes < 1) {
+        printf("\nData inválida. Por favor, informe um mês válido.");
+      } else {
+        printf("\nUma visita foi agendada para a instituição %s, no dia %d do %d de %d, a fim de doar %s. Muito obrigado pela doação!", nome, dia, mes, ano, tipo_fis);
+      }
+    } else {
+      printf("\nTipo de produto inválido.");
+    }
+  } else if (strcmp(doacao, "Monetária") == 0 ||
+             strcmp(doacao, "monetária") == 0) {
+    printf("\nQuanto você gostaria de doar, em reais? ");
+    scanf("%f", &valor);
+
+    printf("\nQual a forma de pagamento? (Cartão, PIX, TED)? ");
+    scanf("%29s", tipo_pag);
+    if (strcmp(tipo_pag, "Cartão") == 0 || strcmp(tipo_pag, "cartão") == 0) {
+      printf("\nVocê gostaria de pagar com que tipo de cartão? (Crédito ou Débito?) ");
+      scanf("%19s", tipo_cart);
+      if (strcmp(tipo_cart, "Crédito") == 0 ||
+          strcmp(tipo_cart, "crédito") == 0) {
+        printf("\nEm quantas vezes você deseja parcelar (escolha entre 1 a 6 parcelas)? ");
+        scanf("%d", &parcelas);
+        parcelado = valor / parcelas;
+        if (parcelas >= 1 && parcelas <= 6) {
+          printf("\nUma doação de R$%.2f será feita usando cartão de crédito, em %d parcelas de R$%.2f sem juros, para a instituição %s. Muito obrigado!", valor, parcelas, parcelado, nome);
+        } else {
+          printf("\nNúmero de parcelas inválido.");
+        }
+      } else if (strcmp(tipo_cart, "Débito") == 0 ||
+                 strcmp(tipo_cart, "débito") == 0) {
+        printf("\nUma doação de R$%.2f será feita usando cartão de débito para a instituição %s. Muito obrigado!",
+               valor, nome);
+      } else {
+        printf("\nFormato de cartão inválido.");
+      }
+    } else if (strcmp(tipo_pag, "PIX") == 0 || strcmp(tipo_pag, "pix") == 0 ||
+               strcmp(tipo_pag, "TED") == 0 || strcmp(tipo_pag, "ted") == 0) {
+      printf("\nObrigado pela doação de R$%.2f via %s para %s!", valor,
+             tipo_pag, nome);
+    } else {
+      printf("\nForma de pagamento inválida.");
+    }
+  } else {
+    printf("\nTipo de doação inválido. Por favor, escolha entre 'Produto' ou 'Monetária'.");
+  }
+  
+  return 0;
+}

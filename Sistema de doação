@@ -1,83 +1,343 @@
 #include <stdio.h>
 #include <string.h>
+#include <locale.h>
+
+#define MAX_USUARIOS 10
+#define MAX_DOACOES 50
+
+typedef struct {
+    char nome[50];
+    char senha[20];
+} Usuario;
+
+typedef struct {
+    char instituicao[100];
+    char tipo[20]; // Produto ou Monetária
+    char detalhes[200];
+    char feedback[200];
+} Doacao;
+
+// Lista global de instituições
+const char *instituicoes[] = {
+    "ASPAAN - Associação Protetora e Amiga dos Animais",
+    "Patas Solidárias - Amigos em Ação",
+    "SOS Animais Anápolis",
+    "AADARPA - Abrigo dos Animais Refugiados",
+    "Miau AuAu - Grupo de Proteção Animal",
+    "Abrigo Lar dos Animais - Goiânia",
+    "Vida Lata - Ajudando quem ajuda",
+    "Focinho Caridoso - Associação em Prol da Vida",
+    "SALVAR - Protetora dos Animais de Alto Paraíso"
+};
+
+Usuario usuarios[MAX_USUARIOS];
+int totalUsuarios = 0;
+int usuarioLogado = -1;
+
+Doacao historico[MAX_DOACOES];
+int totalDoacoes = 0;
+
+// ================== Funções auxiliares ==================
+
+int diasNoMes(int mes, int ano) {
+    if (mes == 2) return (ano % 4 == 0 && (ano % 100 != 0 || ano % 400 == 0)) ? 29 : 28;
+    else if (mes == 4 || mes == 6 || mes == 9 || mes == 11) return 30;
+    else return 31;
+}
+
+int dataValida(int d, int m, int a) {
+    return (a >= 2024 && m >= 1 && m <= 12 && d >= 1 && d <= diasNoMes(m, a));
+}
+
+int horaValida(int h, int min) {
+    return (h >= 0 && h <= 23 && min >= 0 && min <= 59);
+}
+
+void cadastrarUsuario() {
+    if (totalUsuarios >= MAX_USUARIOS) {
+        printf("\n[!] Limite de usuários atingido!\n");
+        return;
+    }
+
+    printf("\n--- Cadastro ---\n");
+    printf("Nome de usuário: ");
+    scanf(" %[^\n]", usuarios[totalUsuarios].nome);
+    printf("Senha: ");
+    scanf(" %[^\n]", usuarios[totalUsuarios].senha);
+
+    printf("\n✅ Cadastro realizado com sucesso!\n");
+    totalUsuarios++;
+}
+
+int login() {
+    char nome[50], senha[20];
+    printf("\n--- Login ---\n");
+    printf("Nome de usuário: ");
+    scanf(" %[^\n]", nome);
+    printf("Senha: ");
+    scanf(" %[^\n]", senha);
+
+    for (int i = 0; i < totalUsuarios; i++) {
+        if (strcmp(nome, usuarios[i].nome) == 0 && strcmp(senha, usuarios[i].senha) == 0) {
+            printf("\n✅ Login realizado com sucesso!\n");
+            usuarioLogado = i;
+            return 1;
+        }
+    }
+
+    printf("❌ Usuário ou senha incorretos.\n");
+    return 0;
+}
+
+void listarInstituicoes() {
+    printf("\n--- Instituições Disponíveis ---\n\n");
+    for (int i = 0; i < 9; i++) {
+        printf("  %d. %s\n", i + 1, instituicoes[i]);
+    }
+    printf("\n");
+}
+
+void gerarFeedback(char *tipo, char *feedback) {
+    if (strcmp(tipo, "Monetária") == 0) {
+        const char *mensagens[] = {
+            "Graças à sua contribuição, conseguimos comprar 10kg de ração para nossos animais!",
+            "Sua doação ajudou a custear atendimentos veterinários esta semana!",
+            "Com sua ajuda, compramos vacinas e medicamentos para os peludos."
+        };
+        strcpy(feedback, mensagens[totalDoacoes % 3]);
+    } else {
+        const char *mensagens[] = {
+            "Os cobertores doados aqueceram nossos cães neste inverno!",
+            "As rações alimentaram filhotes resgatados — gratidão!",
+            "Os brinquedos doados trouxeram alegria aos animais do abrigo!"
+        };
+        strcpy(feedback, mensagens[totalDoacoes % 3]);
+    }
+}
+
+void registrarDoacao(char *instituicao, char *tipo, char *detalhes) {
+    if (totalDoacoes < MAX_DOACOES) {
+        strcpy(historico[totalDoacoes].instituicao, instituicao);
+        strcpy(historico[totalDoacoes].tipo, tipo);
+        strcpy(historico[totalDoacoes].detalhes, detalhes);
+        gerarFeedback(tipo, historico[totalDoacoes].feedback);
+        totalDoacoes++;
+    }
+}
+
+void fazerDoacao() {
+    listarInstituicoes();
+    int escolha;
+    printf("\nEscolha: ");
+    scanf("%d", &escolha);
+
+    if (escolha < 1 || escolha > 9) {
+        printf("\n❌ Opção inválida.\n");
+        return;
+    }
+
+    char instituicao[100];
+    strcpy(instituicao, instituicoes[escolha - 1]);
+
+    printf("\nTipo de doação:\n");
+    printf("  1. Monetária\n");
+    printf("  2. Produto\n\n");
+    printf("Escolha: ");
+    int tipo;
+    scanf("%d", &tipo);
+
+    if (tipo == 1) {
+        float valor;
+        int forma;
+        printf("\nValor da doação (R$): ");
+        scanf("%f", &valor);
+
+        printf("\nForma de pagamento:\n");
+        printf("  1. Cartão\n");
+        printf("  2. PIX\n");
+        printf("  3. TED\n\n");
+        printf("Escolha: ");
+        scanf("%d", &forma);
+
+        const char *formaTexto = (char*[]){"Cartão", "PIX", "TED"}[forma - 1];
+        printf("\n⚠️  Você está prestes a realizar uma doação de R$%.2f via %s.\nDeseja continuar? (S/N): ", valor, formaTexto);
+        char confirmar;
+        scanf(" %c", &confirmar);
+        if (confirmar != 'S' && confirmar != 'S') {
+            printf("\n❌ Doação cancelada.\n");
+            return;
+        }
+
+        char detalhe[200];
+        sprintf(detalhe, "Doação de R$%.2f via %s", valor, formaTexto);
+        registrarDoacao(instituicao, "Monetária", detalhe);
+        printf("\n✅ Doação realizada com sucesso!\n");
+
+    } else if (tipo == 2) {
+        const char *produtos[] = {
+            "Pacote de Ração", "Produto de Limpeza", "Medicamento", "Antipulga / Carrapaticida",
+            "Cobertor", "Toalha / Lençol", "Comedouro / Bebedouro", "Areia para Gatos",
+            "Caixa de Transporte", "Cama Pet / Casinha", "Coleira / Guia", "Tapete Higiênico / Jornal",
+            "Roupinha Pet", "Brinquedo"
+        };
+
+        int quantidades[14] = {0};
+        int total;
+        printf("\n--- Itens Disponíveis ---\n");
+        for (int i = 0; i < 14; i++) {
+            printf("  %2d. %s\n", i + 1, produtos[i]);
+        }
+
+        printf("\nQuantos itens diferentes deseja doar? ");
+        scanf("%d", &total);
+
+        for (int i = 0; i < total; i++) {
+            int pIndex, qtd;
+            printf("\nNúmero do item: ");
+            scanf("%d", &pIndex);
+
+            if (pIndex < 1 || pIndex > 14) {
+                printf("❌ Produto inválido. Tente novamente.\n");
+                i--; continue;
+            }
+
+            printf("Quantidade de '%s': ", produtos[pIndex - 1]);
+            scanf("%d", &qtd);
+            quantidades[pIndex - 1] += qtd;
+        }
+
+        int dia, mes, ano, hora, minuto;
+        do {
+            printf("\nData da entrega (dd mm aaaa): ");
+            scanf("%d %d %d", &dia, &mes, &ano);
+            if (!dataValida(dia, mes, ano)) {
+                printf("❌ Data inválida. Tente novamente.\n");
+            }
+        } while (!dataValida(dia, mes, ano));
+
+        do {
+            printf("Horário da entrega (hh mm): ");
+            scanf("%d %d", &hora, &minuto);
+            if (!horaValida(hora, minuto)) {
+                printf("❌ Horário inválido. Tente novamente.\n");
+            }
+        } while (!horaValida(hora, minuto));
+
+        char detalhe[300] = "";
+        strcat(detalhe, "Itens: ");
+        for (int i = 0; i < 14; i++) {
+            if (quantidades[i] > 0) {
+                char temp[60];
+                sprintf(temp, "%d x %s, ", quantidades[i], produtos[i]);
+                strcat(detalhe, temp);
+            }
+        }
+
+        char agendamento[60];
+        sprintf(agendamento, "Entrega: %02d/%02d/%04d às %02dh%02d", dia, mes, ano, hora, minuto);
+        strcat(detalhe, agendamento);
+
+        printf("\n⚠️  Você está prestes a agendar uma entrega para %s no dia %02d/%02d/%04d às %02dh%02d.\nDeseja continuar? (S/N): ",
+               instituicao, dia, mes, ano, hora, minuto);
+        char confirmar;
+        scanf(" %c", &confirmar);
+        if (confirmar != 'S' && confirmar != 'S') {
+            printf("\n❌ Agendamento cancelado.\n");
+            return;
+        }
+
+        registrarDoacao(instituicao, "Produto", detalhe);
+        printf("\n✅ Agendamento realizado com sucesso!\n");
+    } else {
+        printf("\n❌ Tipo inválido.\n");
+    }
+}
+
+void verHistorico() {
+    printf("\n--- Histórico de Doações ---\n\n");
+    if (totalDoacoes == 0) {
+        printf("Nenhuma doação registrada.\n");
+        return;
+    }
+
+    for (int i = 0; i < totalDoacoes; i++) {
+        printf("[%d] %s - %s\n", i + 1, historico[i].instituicao, historico[i].tipo);
+        printf("     Detalhes: %s\n", historico[i].detalhes);
+        printf("     🐾 Feedback: %s\n\n", historico[i].feedback);
+    }
+
+    printf("Deseja:\n");
+    printf("  1. Doar novamente\n");
+    printf("  2. Voltar ao menu\n\n");
+    printf("Escolha: ");
+    int escolha;
+    scanf("%d", &escolha);
+    if (escolha == 1) {
+        fazerDoacao();
+    }
+}
+
+void sobreNPET() {
+    printf("\n--- Sobre o NPET ---\n\n");
+    printf("O NPET é uma plataforma digital que conecta doadores a ONGs e abrigos que cuidam de animais em situação de rua. Desenvolvido em parceria com a UniEVANGÉLICA (Campus Anápolis), o projeto visa transformar a realidade de milhares de animais do estado de Goiás, fortalecendo organizações que dedicam suas vidas a essa causa.\n");
+
+    printf("\n");
+    
+    printf("Acreditamos fortemente que toda doação deve ser acompanhada de confiança e responsabilidade. Por isso, o NPET valoriza a transparência em cada etapa: nossos doadores podem acompanhar suas contribuições em tempo real, visualizando o impacto que estão gerando e fortalecendo ainda mais o elo entre quem ajuda e quem é ajudado.\n");
+
+    printf("\n");
+    
+    printf("[DADOS FICTÍCIOS!!!]\n");
+    printf("IMPACTO: +900 animais beneficiados\n");
+    printf("TEMPO: +2 anos de atuação\n");
+    printf("DOAÇÕES: +200 doações realizadas\n");
+    printf("PARCERIAS: +10 instituições parceiras\n");
+    printf("ABRANGÊNCIA: +10 cidades goianas\n");
+    printf("SATISFAÇÃO: 98%% dos doadores satisfeitos.\n");
+}
+
+void menu() {
+    int opcao;
+    do {
+        printf("\n=== Menu Principal ===\n");
+        printf("  1. Fazer uma doação\n");
+        printf("  2. Ver histórico de doações\n");
+        printf("  3. Ver informações sobre o NPET\n");
+        printf("  4. Sair\n\n");
+        printf("Escolha: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1: fazerDoacao(); break;
+            case 2: verHistorico(); break;
+            case 3: sobreNPET(); break;
+            case 4: printf("\nSaindo... Obrigado por usar o NPET 💚\n"); break;
+            default: printf("\n❌ Opção inválida.\n");
+        }
+    } while (opcao != 4);
+}
 
 int main() {
-  char doacao[20], tipo_pag[30], tipo_fis[30], nome[30], tipo_cart[20];
-  float valor, parcelado;
-  int parcelas, dia, mes, ano;
+    setlocale(LC_ALL, "Portuguese");
+    printf("=== Bem-vindo ao NPET ===\n");
+    int logado = 0;
 
-  printf("\nPara qual instituição você deseja doar? ");
-  scanf("%29s", nome);
+    while (!logado) {
+        printf("\n1. Cadastrar\n");
+        printf("2. Login\n\n");
+        printf("Escolha: ");
+        int opcao;
+        scanf("%d", &opcao);
 
-  printf(
-      "\nQual tipo de doação você gostaria de fazer? (Produto, Monetária): ");
-  scanf("%19s", doacao);
-
-  if (strcmp(doacao, "Produto") == 0 || strcmp(doacao, "produto") == 0) {
-    printf("\nQual tipo de produto você gostaria de doar? (Alimentos, Medicamentos, Brinquedos ou Cobertores): ");
-    scanf("%19s", tipo_fis);
-
-    if (strcmp(tipo_fis, "Alimentos") == 0 ||
-        strcmp(tipo_fis, "alimentos") == 0 ||
-        strcmp(tipo_fis, "Medicamentos") == 0 ||
-        strcmp(tipo_fis, "medicamentos") == 0 ||
-        strcmp(tipo_fis, "Brinquedos") == 0 ||
-        strcmp(tipo_fis, "brinquedos") == 0 ||
-        strcmp(tipo_fis, "Cobertores") == 0 ||
-        strcmp(tipo_fis, "cobertores") == 0) {
-      printf("\nQuando você deseja agendar a visita? Por favor, informe o dia, mês e ano, separados por espaço (exemplo: 30 9 2024): ");
-      scanf("%d %d %d", &dia, &mes, &ano);
-      if  (dia > 31 || dia < 1 || 
-          (dia == 31 && mes == 2) || (dia == 31 && mes == 4) ||
-          (dia == 31 && mes == 6) || (dia == 31 && mes == 9) ||
-          (dia == 31 && mes == 11) || (dia == 29 && mes == 2 && ano % 4 != 0) ||
-          (dia == 30 && mes == 2)) {
-        printf("\nData inválida. Por favor, informe uma data válida.");
-      } else if (mes > 12 || mes < 1) {
-        printf("\nData inválida. Por favor, informe um mês válido.");
-      } else {
-        printf("\nUma visita foi agendada para a instituição %s, no dia %d do %d de %d, a fim de doar %s. Muito obrigado pela doação!", nome, dia, mes, ano, tipo_fis);
-      }
-    } else {
-      printf("\nTipo de produto inválido.");
-    }
-  } else if (strcmp(doacao, "Monetária") == 0 ||
-             strcmp(doacao, "monetária") == 0) {
-    printf("\nQuanto você gostaria de doar, em reais? ");
-    scanf("%f", &valor);
-
-    printf("\nQual a forma de pagamento? (Cartão, PIX, TED)? ");
-    scanf("%29s", tipo_pag);
-    if (strcmp(tipo_pag, "Cartão") == 0 || strcmp(tipo_pag, "cartão") == 0) {
-      printf("\nVocê gostaria de pagar com que tipo de cartão? (Crédito ou Débito?) ");
-      scanf("%19s", tipo_cart);
-      if (strcmp(tipo_cart, "Crédito") == 0 ||
-          strcmp(tipo_cart, "crédito") == 0) {
-        printf("\nEm quantas vezes você deseja parcelar (escolha entre 1 a 6 parcelas)? ");
-        scanf("%d", &parcelas);
-        parcelado = valor / parcelas;
-        if (parcelas >= 1 && parcelas <= 6) {
-          printf("\nUma doação de R$%.2f será feita usando cartão de crédito, em %d parcelas de R$%.2f sem juros, para a instituição %s. Muito obrigado!", valor, parcelas, parcelado, nome);
+        if (opcao == 1) {
+            cadastrarUsuario();
+        } else if (opcao == 2) {
+            logado = login();
         } else {
-          printf("\nNúmero de parcelas inválido.");
+            printf("\n❌ Opção inválida.\n");
         }
-      } else if (strcmp(tipo_cart, "Débito") == 0 ||
-                 strcmp(tipo_cart, "débito") == 0) {
-        printf("\nUma doação de R$%.2f será feita usando cartão de débito para a instituição %s. Muito obrigado!",
-               valor, nome);
-      } else {
-        printf("\nFormato de cartão inválido.");
-      }
-    } else if (strcmp(tipo_pag, "PIX") == 0 || strcmp(tipo_pag, "pix") == 0 ||
-               strcmp(tipo_pag, "TED") == 0 || strcmp(tipo_pag, "ted") == 0) {
-      printf("\nObrigado pela doação de R$%.2f via %s para %s!", valor,
-             tipo_pag, nome);
-    } else {
-      printf("\nForma de pagamento inválida.");
     }
-  } else {
-    printf("\nTipo de doação inválido. Por favor, escolha entre 'Produto' ou 'Monetária'.");
-  }
-  
-  return 0;
+
+    menu();
+    return 0;
 }
